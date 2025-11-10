@@ -1,0 +1,291 @@
+<!-- Index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Contract Monitoring Portal</title>
+  <style>
+    :root{--primary:#0b66b3;--bg:#f3f6f9;--card:#fff;--muted:#6b7d8e}
+    html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial}
+    body{background:var(--bg);color:#213244}
+    .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:linear-gradient(90deg,#eaf5ff,#f6fbff);box-shadow:0 1px 0 rgba(0,0,0,0.04)}
+    .logo{font-weight:700;color:var(--primary)}
+    .container{padding:20px}
+    .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+    .tile{background:var(--card);border-radius:12px;padding:18px;box-shadow:0 6px 18px rgba(15,30,60,0.06);transition:transform .25s, box-shadow .25s;cursor:pointer}
+    .tile:hover{transform:translateY(-6px);box-shadow:0 18px 40px rgba(15,30,60,0.09)}
+    .tile h3{margin:0 0 6px 0;font-size:16px;color:#17324d}
+    .tile p{margin:0;color:var(--muted)}
+    .muted{color:var(--muted)}
+    .btn{background:var(--primary);color:white;padding:8px 12px;border-radius:8px;text-decoration:none;border:none}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(12,20,36,0.45);display:none;align-items:center;justify-content:center;z-index:50}
+    .modal{background:white;border-radius:10px;padding:18px;min-width:420px;box-shadow:0 18px 40px rgba(10,20,40,0.25)}
+    input, select, textarea{font-family:inherit;border:1px solid #e6eef5;border-radius:6px}
+    input, select{padding:8px}
+    textarea{padding:8px;min-height:80px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid #eef3f7;text-align:left}
+    .card{background:white;padding:12px;border-radius:10px}
+    .badge{display:inline-block;padding:6px 8px;border-radius:999px;font-size:12px}
+    .toast{position:fixed;right:20px;bottom:20px;background:#212b36;color:white;padding:10px 14px;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,0.25);display:none;z-index:9999}
+    .small{font-size:12px;color:#7b8a99}
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="logo">Contract Monitoring Portal</div>
+    <div id="user-info" class="muted">Checking user...</div>
+  </div>
+
+  <div class="container">
+    <div id="access-error" style="display:none" class="card">You are not whitelisted to access this portal. Request access from admin.</div>
+
+    <div id="app" style="display:none">
+      <div style="display:flex;gap:16px;margin-bottom:18px;align-items:center">
+        <div class="card" style="flex:1"><strong id="kpi-week">Week %: --</strong> <div class="muted">KPI summary</div></div>
+        <div><button class="btn" onclick="showPackageModal('tpl')">TPL - Weekly Planner</button></div>
+        <div><button class="btn" onclick="showPackageModal('ccd')">CCD - Review</button></div>
+      </div>
+
+      <div class="tiles">
+        <div class="tile" onclick="showPackageModal('tpl')">
+          <h3>TPL — Weekly Planner</h3>
+          <p class="muted">Add tasks, save draft, submit for CCD review</p>
+        </div>
+        <div class="tile" onclick="showPackageModal('tpl-self')">
+          <h3>TPL — Self Assessment</h3>
+          <p class="muted">Mark tasks achieved and submit</p>
+        </div>
+        <div class="tile" onclick="showPackageModal('ccd')">
+          <h3>CCD — Review & Approve</h3>
+          <p class="muted">Review submissions, add remarks, approve or request changes</p>
+        </div>
+        <div class="tile" onclick="openRatings()">
+          <h3>Ratings (Weekly/Monthly/Quarterly)</h3>
+          <p class="muted">View aggregated ratings and trends</p>
+        </div>
+      </div>
+
+      <div style="margin-top:20px">
+        <h3 style="margin:0 0 8px 0">Recent Submissions</h3>
+        <div id="recent" class="card">Loading...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Package modal -->
+  <div id="pkgModal" class="modal-backdrop">
+    <div class="modal">
+      <h3>Select Package & Sub-work</h3>
+      <div style="margin-top:8px">
+        <label>Package</label><br>
+        <select id="pkgSelect" style="width:100%;padding:8px;margin-top:6px"></select>
+      </div>
+      <div style="margin-top:8px">
+        <label>Sub-work</label><br>
+        <select id="subSelect" style="width:100%;padding:8px;margin-top:6px"></select>
+      </div>
+      <div style="text-align:right;margin-top:12px">
+        <button onclick="closePkgModal()" style="margin-right:8px">Cancel</button>
+        <button class="btn" id="pkgConfirm">Proceed</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TPL Weekly Planner modal -->
+  <div id="tplModal" class="modal-backdrop">
+    <div class="modal" style="min-width:760px">
+      <h3>TPL Weekly Planner — <span id="tplHeader"></span></h3>
+      <div style="display:flex;gap:12px;margin-top:12px">
+        <div style="flex:1">
+          <label>Task</label><input id="tplTask" style="width:100%;padding:8px;margin-top:6px" />
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px">
+            <input id="tplPlannedQty" placeholder="Planned Qty" style="padding:8px" />
+            <input id="tplUnitRate" placeholder="Unit Rate" style="padding:8px" />
+            <input id="tplUnit" placeholder="Unit" style="padding:8px" />
+          </div>
+          <textarea id="tplRemarks" placeholder="Remarks by TPL" style="width:100%;height:80px;margin-top:8px;padding:8px"></textarea>
+          <div style="margin-top:8px;text-align:right">
+            <button onclick="closeTplModal()" style="margin-right:8px">Cancel</button>
+            <button class="btn" onclick="saveDraftTPL()">Save Draft</button>
+            <button class="btn" style="background:#1b9a58;margin-left:8px" onclick="saveAndSubmitTPL()">Save & Submit</button>
+          </div>
+        </div>
+        <div style="width:300px">
+          <div class="card">
+            <h4 style="margin:0">Preview</h4>
+            <div style="margin-top:8px">Planned Value: <span id="previewPV">0</span></div>
+            <div style="margin-top:8px">Importance: <select id="tplImportance"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+            <div style="margin-top:12px"><small class="muted">Save draft to store progress. Submit will lock this entry.</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CCD Review modal -->
+  <div id="ccdModal" class="modal-backdrop">
+    <div class="modal" style="min-width:760px">
+      <h3>CCD Review — <span id="ccdHeader"></span></h3>
+      <div style="margin-top:8px">
+        <div id="ccdList">Loading...</div>
+      </div>
+      <div style="text-align:right;margin-top:12px">
+        <button onclick="closeCcdModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Request change modal -->
+  <div id="requestModal" class="modal-backdrop">
+    <div class="modal" style="min-width:520px">
+      <h3>Request Changes</h3>
+      <div style="margin-top:8px">
+        <label>Reason</label><br>
+        <textarea id="requestReason" style="width:100%;padding:8px"></textarea>
+      </div>
+      <div style="text-align:right;margin-top:12px">
+        <button onclick="closeRequestModal()" style="margin-right:8px">Cancel</button>
+        <button class="btn" onclick="submitRequestChange()">Send Request</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    var pendingAction = null;
+    var pendingPackage = null;
+    var pendingSub = null;
+    var selectedSubmissionForRequest = null;
+
+    document.addEventListener('DOMContentLoaded', function(){ google.script.run.withSuccessHandler(onAuth).isUserWhitelisted(); });
+
+    function showToast(msg, tms){
+      var el = document.getElementById('toast');
+      el.textContent = msg; el.style.display='block';
+      setTimeout(function(){ el.style.display='none'; }, tms || 3000);
+    }
+
+    function onAuth(res){
+      var el = document.getElementById('user-info');
+      if (!res || !res.email){ el.textContent = 'Sign in with Google to continue'; document.getElementById('access-error').style.display='block'; return; }
+      el.textContent = res.email + (res.role?(' — '+res.role):'');
+      if (!res.allowed){ document.getElementById('access-error').style.display='block'; return; }
+      document.getElementById('app').style.display='block';
+      loadDashboard(); loadRecent();
+    }
+
+    function loadDashboard(){ google.script.run.withSuccessHandler(renderDashboard).getDashboardData(); }
+    function renderDashboard(d){ document.getElementById('kpi-week').textContent = 'Week %: ' + (d.totalTPL || 0); }
+    function loadRecent(){ google.script.run.withSuccessHandler(renderRecent).getRecentSubmissions(10); }
+    function renderRecent(rows){
+      var el = document.getElementById('recent');
+      if (!rows || rows.length===0){ el.innerHTML = '<div class="muted">No submissions yet</div>'; return; }
+      var html = '<table><tr><th>ID</th><th>Package</th><th>Task</th><th>Status</th><th>SubmittedAt</th></tr>';
+      rows.forEach(function(r){ html += '<tr><td>' + (r['ID']||'') + '</td><td>' + (r['Package']||'') + '</td><td>' + (r['Task']||'') + '</td><td>' + (r['Status']||'') + '</td><td>' + (r['SubmittedAt']||'') + '</td></tr>'; });
+      html += '</table>';
+      el.innerHTML = html;
+    }
+
+    // Package modal
+    function showPackageModal(action){
+      pendingAction = action;
+      document.getElementById('pkgModal').style.display='flex';
+      var pk = document.getElementById('pkgSelect'); var sb = document.getElementById('subSelect');
+      pk.innerHTML = '<option>Loading...</option>'; sb.innerHTML = '<option>--</option>';
+      google.script.run.withSuccessHandler(function(pkgs){ pk.innerHTML = '<option value="">-- Select --</option>'; pkgs.forEach(function(p){ var o=document.createElement('option'); o.value=p; o.text=p; pk.appendChild(o); }); }).getPackagesList();
+      pk.onchange = function(){ var v=this.value; if(!v){ sb.innerHTML='<option>--</option>'; return; } sb.innerHTML='<option>Loading...</option>'; google.script.run.withSuccessHandler(function(subs){ sb.innerHTML='<option value="">-- Select sub-work --</option>'; subs.forEach(function(s){ var o=document.createElement('option'); o.value=s; o.text=s; sb.appendChild(o); }); }).getSubworksForPackage(v); }
+    }
+    function closePkgModal(){ document.getElementById('pkgModal').style.display='none'; }
+    document.getElementById('pkgConfirm').addEventListener('click', function(){
+      var pkg=document.getElementById('pkgSelect').value; var sub=document.getElementById('subSelect').value;
+      if(!pkg||!sub){ alert('Select package and sub-work'); return; }
+      closePkgModal();
+      routeAfterPackageSelection(pendingAction,pkg,sub);
+      pendingAction=null;
+    });
+
+    function routeAfterPackageSelection(action,pkg,sub){
+      pendingPackage = pkg; pendingSub = sub;
+      if (action==='tpl' || action==='tpl-self') openTplModal(pkg,sub);
+      else if (action==='ccd') openCcdModal(pkg,sub);
+      else alert(action+' / '+pkg+' / '+sub);
+    }
+
+    // TPL modal flows
+    function openTplModal(pkg,sub){ document.getElementById('tplHeader').textContent = pkg + ' — ' + sub; document.getElementById('tplModal').style.display='flex'; }
+    function closeTplModal(){ document.getElementById('tplModal').style.display='none'; }
+    function saveDraftTPL(){
+      var payload = {
+        'Package': pendingPackage || document.getElementById('pkgSelect').value,
+        'Sub Package': pendingSub || document.getElementById('subSelect').value,
+        'Task': document.getElementById('tplTask').value,
+        'Planned Qty': document.getElementById('tplPlannedQty').value,
+        'Unit Rate': document.getElementById('tplUnitRate').value,
+        'Unit': document.getElementById('tplUnit').value,
+        'Planned Value': (Number(document.getElementById('tplPlannedQty').value)||0) * (Number(document.getElementById('tplUnitRate').value)||0),
+        'Remarks by TPL': document.getElementById('tplRemarks').value
+      };
+      google.script.run.withSuccessHandler(function(r){ showToast('Draft saved (ID: '+(r.id||'')+')'); closeTplModal(); loadRecent(); }).saveDraftWeeklyTarget(payload);
+    }
+    function saveAndSubmitTPL(){
+      var payload = {
+        'Package': pendingPackage || document.getElementById('pkgSelect').value,
+        'Sub Package': pendingSub || document.getElementById('subSelect').value,
+        'Task': document.getElementById('tplTask').value,
+        'Planned Qty': document.getElementById('tplPlannedQty').value,
+        'Unit Rate': document.getElementById('tplUnitRate').value,
+        'Unit': document.getElementById('tplUnit').value,
+        'Planned Value': (Number(document.getElementById('tplPlannedQty').value)||0) * (Number(document.getElementById('tplUnitRate').value)||0),
+        'Remarks by TPL': document.getElementById('tplRemarks').value
+      };
+      // Save & submit flow
+      google.script.run.withSuccessHandler(function(saveRes){
+        var id = saveRes.id;
+        if (!id) { showToast('Saved but ID not returned—refresh sheet to confirm'); closeTplModal(); loadRecent(); return; }
+        google.script.run.withSuccessHandler(function(subRes){ showToast('Submitted & locked (ID:'+id+')'); closeTplModal(); loadRecent(); }).submitWeeklyTarget(id);
+      }).saveDraftWeeklyTarget(payload);
+    }
+
+    // CCD modal & actions
+    function openCcdModal(pkg,sub){
+      document.getElementById('ccdHeader').textContent = pkg + ' — ' + sub;
+      document.getElementById('ccdModal').style.display='flex';
+      google.script.run.withSuccessHandler(renderCcdList).listSubmittedForReview(pkg, sub, '');
+    }
+    function closeCcdModal(){ document.getElementById('ccdModal').style.display='none'; }
+    function renderCcdList(rows){
+      var container = document.getElementById('ccdList'); container.innerHTML = '';
+      if (!rows || !rows.length) { container.innerHTML = '<div class="muted">No submissions for this selection.</div>'; return; }
+      var html = '<table><tr><th>ID</th><th>Task</th><th>PLanned Value</th><th>SubmittedBy</th><th>SubmittedAt</th><th>Action</th></tr>';
+      rows.forEach(function(r){
+        html += '<tr><td>'+(r['ID']||'')+'</td><td>'+(r['Task']||'')+'</td><td>'+(r['Planned Value']||'')+'</td><td>'+(r['SubmittedBy']||'')+'</td><td>'+(r['SubmittedAt']||'')+'</td>';
+        html += '<td><button onclick="approveSubmission(\\''+(r['ID']||'')+'\\')">Approve</button> <button onclick="openRequestModal(\\''+(r['ID']||'')+'\\')">Request Change</button></td></tr>';
+      });
+      html += '</table>';
+      container.innerHTML = html;
+    }
+
+    function approveSubmission(id){
+      if (!confirm('Approve submission '+id+'?')) return;
+      google.script.run.withSuccessHandler(function(){ showToast('Approved '+id); loadRecent(); google.script.run.withSuccessHandler(renderCcdList).listSubmittedForReview(pendingPackage, pendingSub, ''); }).approveSubmission(id, 'Approved via UI');
+    }
+
+    // Request change flow (CCD)
+    function openRequestModal(id){ selectedSubmissionForRequest = id; document.getElementById('requestReason').value=''; document.getElementById('requestModal').style.display='flex'; }
+    function closeRequestModal(){ document.getElementById('requestModal').style.display='none'; selectedSubmissionForRequest = null; }
+    function submitRequestChange(){
+      var reason = document.getElementById('requestReason').value;
+      if (!reason) return alert('Please enter reason for change');
+      var id = selectedSubmissionForRequest;
+      google.script.run.withSuccessHandler(function(){ showToast('Change requested'); closeRequestModal(); loadRecent(); google.script.run.withSuccessHandler(renderCcdList).listSubmittedForReview(pendingPackage, pendingSub, ''); }).requestChangeSubmission(id, reason);
+    }
+
+    // Ratings dashboard stub
+    function openRatings(){ alert('Ratings dashboard to be implemented (server computed).'); }
+
+  </script>
+</body>
+</html>

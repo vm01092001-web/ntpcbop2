@@ -1,49 +1,274 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NTPC Project Monitoring</title>
-  <link rel="stylesheet" href="style.css" />
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="script.js" defer></script>
-</head>
-<body>
-  <!-- Login Screen -->
-  <div id="login-screen" class="centered">
-    <div class="login-card fade-in">
-      <img src="https://upload.wikimedia.org/wikipedia/en/3/3e/NTPC_Logo.svg" class="logo" alt="NTPC Logo" />
-      <h2>NTPC Project Monitoring Portal</h2>
-      <div id="g_id_onload"
-           data-client_id="270878077169-hlbc44p6usoouafadjh5ftb60ugvb9sm.apps.googleusercontent.com"
-           data-callback="handleCredentialResponse">
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>NTPC Project Monitoring Portal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Google Sign-In -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    <!-- Fonts + Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+      :root {
+        --ntpc-blue: #0078d4;
+        --ntpc-dark: #004a7f;
+        --ntpc-light: #f4f7fb;
+        --ntpc-gray: #e6e9ef;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Inter", sans-serif;
+        background: var(--ntpc-light);
+        color: #1a1a1a;
+      }
+
+      .hidden { display: none !important; }
+      .fade-in { animation: fadeIn 0.7s ease; }
+      @keyframes fadeIn { from {opacity:0} to {opacity:1} }
+
+      /* ---------- LOGIN ---------- */
+      #login-screen {
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .login-card {
+        background: #fff;
+        padding: 40px;
+        border-radius: 18px;
+        box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+        text-align: center;
+        width: 350px;
+      }
+
+      .login-card img {
+        width: 80px;
+        margin-bottom: 12px;
+      }
+
+      .login-card h1 {
+        color: var(--ntpc-dark);
+        margin-bottom: 8px;
+      }
+
+      .login-card p {
+        color: #555;
+        margin-bottom: 25px;
+      }
+
+      /* ---------- APP HEADER ---------- */
+      .app-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(90deg, var(--ntpc-dark), var(--ntpc-blue));
+        color: #fff;
+        padding: 10px 24px;
+      }
+
+      .app-header img {
+        width: 40px;
+        margin-right: 10px;
+      }
+
+      .header-left {
+        display: flex;
+        align-items: center;
+      }
+
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+
+      /* ---------- SIDEBAR ---------- */
+      .sidebar {
+        position: fixed;
+        top: 60px;
+        left: 0;
+        width: 230px;
+        height: calc(100% - 60px);
+        background: #fff;
+        border-right: 1px solid var(--ntpc-gray);
+        box-shadow: 2px 0 8px rgba(0,0,0,0.05);
+        padding-top: 15px;
+      }
+
+      .sidebar button {
+        width: 90%;
+        margin: 8px auto;
+        display: block;
+        background: var(--ntpc-blue);
+        color: #fff;
+        border: none;
+        padding: 12px;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+
+      .sidebar button:hover {
+        background: var(--ntpc-dark);
+      }
+
+      /* ---------- MAIN CONTENT ---------- */
+      .content {
+        margin-left: 240px;
+        padding: 20px 30px;
+      }
+
+      .card {
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.07);
+        padding: 25px;
+        margin-bottom: 20px;
+      }
+
+      .btn {
+        background: #fff;
+        border: none;
+        color: var(--ntpc-dark);
+        border-radius: 6px;
+        padding: 8px 14px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      .btn:hover {
+        background: var(--ntpc-gray);
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- ---------- LOGIN SCREEN ---------- -->
+    <section id="login-screen" class="fade-in">
+      <div class="login-card">
+        <img src="https://upload.wikimedia.org/wikipedia/en/4/44/NTPC_Logo.svg" alt="NTPC Logo">
+        <h1>NTPC Project Monitoring Portal</h1>
+        <p>Sign in with your NTPC-registered Google account.</p>
+        <div id="g_id_onload"
+             data-client_id="270878077169-hlbc44p6usoouafadjh5ftb60ugvb9sm.apps.googleusercontent.com"
+             data-callback="handleCredentialResponse"></div>
+        <div class="g_id_signin" data-type="standard"></div>
       </div>
-      <div class="g_id_signin" data-type="standard"></div>
+    </section>
+
+    <!-- ---------- APP ---------- -->
+    <div id="app" class="hidden fade-in">
+      <header class="app-header">
+        <div class="header-left">
+          <img src="https://upload.wikimedia.org/wikipedia/en/4/44/NTPC_Logo.svg" alt="logo">
+          <h2>NTPC Project Dashboard</h2>
+        </div>
+        <div class="header-right">
+          <span id="user-email"></span>
+          <button class="btn" onclick="logout()">Logout</button>
+        </div>
+      </header>
+
+      <aside class="sidebar">
+        <button onclick="showModule('tpl')">TPL – Weekly Planner</button>
+        <button onclick="showModule('tplAssess')">TPL – Self Assessment</button>
+        <button onclick="showModule('ccdReview')">CCD – Review</button>
+        <button onclick="showModule('rating')">Ratings Summary</button>
+      </aside>
+
+      <main class="content" id="content">
+        <div class="card">
+          <h1>Welcome to NTPC Monitoring System</h1>
+          <p>Select a section from the left panel to get started.</p>
+        </div>
+      </main>
     </div>
-  </div>
 
-  <!-- App Main -->
-  <div id="app" class="hidden">
-    <header class="app-header">
-      <div class="header-left">
-        <img src="https://upload.wikimedia.org/wikipedia/en/3/3e/NTPC_Logo.svg" class="header-logo" />
-        <h1>NTPC Project Dashboard</h1>
-      </div>
-      <div class="header-right">
-        <span id="user-email"></span>
-        <button id="logout-btn">Logout</button>
-      </div>
-    </header>
+    <script>
+      let currentUser = null;
 
-    <nav class="sidebar slide-in-left">
-      <ul id="nav-links"></ul>
-    </nav>
+      // ---------- Google Sign-In Callback ----------
+      function handleCredentialResponse(response) {
+        const token = response.credential;
+        // Verify on backend
+        google.script.run
+          .withSuccessHandler(user => {
+            if (user && user.email) {
+              currentUser = user;
+              document.getElementById('user-email').textContent = user.email;
+              document.getElementById('login-screen').classList.add('hidden');
+              document.getElementById('app').classList.remove('hidden');
+            } else {
+              alert("Unauthorized user.");
+            }
+          })
+          .verifyGoogleToken(token);
+      }
 
-    <main class="content slide-fade" id="content-area">
-      <h2>Welcome to the NTPC Monitoring System</h2>
-      <p>Select a section from the left panel to get started.</p>
-    </main>
-  </div>
-</body>
+      // ---------- Logout ----------
+      function logout() {
+        currentUser = null;
+        document.getElementById('app').classList.add('hidden');
+        document.getElementById('login-screen').classList.remove('hidden');
+      }
+
+      // ---------- Module Switch ----------
+      function showModule(name) {
+        const content = document.getElementById('content');
+        let html = "";
+
+        if (name === "tpl") {
+          html = `
+            <div class='card'>
+              <h2>TPL – Weekly Planner</h2>
+              <p>Enter weekly targets and remarks.</p>
+              <textarea id="tplTasks" style="width:100%;height:120px"></textarea><br>
+              <button class='btn' onclick="saveDraft()">Save Draft</button>
+              <button class='btn' onclick="submitPlanner()">Submit</button>
+            </div>`;
+        } else if (name === "tplAssess") {
+          html = `
+            <div class='card'>
+              <h2>TPL – Self Assessment</h2>
+              <p>Mark tasks achieved and add remarks.</p>
+              <textarea id="tplAssessText" style="width:100%;height:120px"></textarea><br>
+              <button class='btn' onclick="submitAssessment()">Submit</button>
+            </div>`;
+        } else if (name === "ccdReview") {
+          html = `
+            <div class='card'>
+              <h2>CCD – Review</h2>
+              <p>Review submitted tasks, add remarks, and give ratings.</p>
+              <button class='btn' onclick="loadReviews()">Load Pending Reviews</button>
+              <div id='reviewContainer'></div>
+            </div>`;
+        } else if (name === "rating") {
+          html = `
+            <div class='card'>
+              <h2>Ratings Summary</h2>
+              <div id='ratingData'>Loading...</div>
+            </div>`;
+          google.script.run.withSuccessHandler(showRatings).getRatingsSummary();
+        }
+
+        content.innerHTML = html;
+      }
+
+      // ---------- Dummy Actions ----------
+      function saveDraft() { alert("Draft saved locally."); }
+      function submitPlanner() { alert("Planner submitted!"); }
+      function submitAssessment() { alert("Assessment submitted!"); }
+      function loadReviews() { document.getElementById('reviewContainer').innerHTML = "<p>No new reviews.</p>"; }
+      function showRatings(data) {
+        document.getElementById('ratingData').innerHTML = JSON.stringify(data || {}, null, 2);
+      }
+    </script>
+  </body>
 </html>

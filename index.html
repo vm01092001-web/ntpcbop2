@@ -272,3 +272,48 @@
     </script>
   </body>
 </html>
+<script>
+  function handleCredentialResponse(response) {
+    try {
+      if (!response || !response.credential) {
+        alert("No credential received from Google sign-in.");
+        console.error("No credential:", response);
+        return;
+      }
+
+      const idToken = response.credential;
+
+      // Show spinner or message if you want
+      console.log("Got id_token from Google. Sending to server...");
+
+      // Call Apps Script server function verifyGoogleToken
+      google.script.run
+        .withSuccessHandler(function(serverResult) {
+          console.log("Server verify result:", serverResult);
+          if (serverResult && serverResult.ok) {
+            // Signed in and whitelisted
+            document.getElementById('user-email').textContent = serverResult.email;
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('app').classList.remove('hidden');
+            // store user info locally if needed
+            window.__currentUser = serverResult;
+          } else {
+            // show clear error message
+            const err = serverResult && serverResult.error ? serverResult.error : "Unknown verification failure";
+            alert("Sign-in blocked: " + err);
+            console.error("verifyGoogleToken failed:", serverResult);
+          }
+        })
+        .withFailureHandler(function(err) {
+          // This is network / server runtime failure (not token verification error)
+          alert("Server call failed: " + JSON.stringify(err));
+          console.error("google.script.run error:", err);
+        })
+        .verifyGoogleToken(idToken);
+    } catch (ex) {
+      alert("Client error: " + ex.message);
+      console.error(ex);
+    }
+  }
+</script>
+

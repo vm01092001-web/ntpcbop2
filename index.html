@@ -1,161 +1,49 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <base target="_top">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Contract Monitoring Portal</title>
-
-    <!-- Google Identity script -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-
-    <style>
-      :root{--primary:#0b66b3;--bg:#f3f6f9;--card:#fff;--muted:#6b7d8e}
-      html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial}
-      body{background:var(--bg);color:#213244}
-      .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:linear-gradient(90deg,#eaf5ff,#f6fbff);box-shadow:0 1px 0 rgba(0,0,0,0.04)}
-      .logo{font-weight:700;color:var(--primary)}
-      .container{padding:20px}
-      .muted{color:var(--muted)}
-      .card{background:white;padding:12px;border-radius:10px}
-      .btn{background:var(--primary);color:white;padding:8px 12px;border-radius:8px;border:none}
-      .modal-backdrop{position:fixed;inset:0;background:rgba(12,20,36,0.45);display:none;align-items:center;justify-content:center;z-index:50}
-      .modal{background:white;border-radius:10px;padding:18px;min-width:420px;box-shadow:0 18px 40px rgba(10,20,40,0.25)}
-      .toast{position:fixed;right:20px;bottom:20px;background:#212b36;color:white;padding:10px 14px;border-radius:8px;display:none;z-index:9999}
-    </style>
-  </head>
-  <body>
-    <div class="topbar">
-      <div class="logo">Contract Monitoring Portal</div>
-      <div id="user-info" class="muted">Checking user...</div>
-    </div>
-
-    <div class="container">
-      <div id="access-error" style="display:none" class="card">You are not whitelisted to access this portal. Request access from admin.</div>
-
-      <div id="signin-area" style="display:none" class="card">
-        <div id="g_id_onload" style="display:none"></div>
-        <div id="gSignInDiv" style="margin:12px 0"></div>
-        <div class="small muted">Sign in with the Google account you've added to UsersWhitelist.</div>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NTPC Project Monitoring</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <!-- Login Screen -->
+  <div id="login-screen" class="centered">
+    <div class="login-card fade-in">
+      <img src="https://upload.wikimedia.org/wikipedia/en/3/3e/NTPC_Logo.svg" class="logo" alt="NTPC Logo" />
+      <h2>NTPC Project Monitoring Portal</h2>
+      <div id="g_id_onload"
+           data-client_id="270878077169-hlbc44p6usoouafadjh5ftb60ugvb9sm.apps.googleusercontent.com"
+           data-callback="handleCredentialResponse">
       </div>
-
-      <div id="app" style="display:none">
-        <div class="card" style="margin-bottom:12px">
-          <strong id="welcome">Welcome</strong>
-          <div id="roleText" class="small muted"></div>
-        </div>
-
-        <!-- Main tiles simplified; reuse your existing UI thereafter -->
-        <div class="card">
-          <div style="display:flex;gap:12px">
-            <button class="btn" onclick="showPackageModal('tpl')">TPL - Weekly Planner</button>
-            <button class="btn" onclick="showPackageModal('ccd')">CCD - Review</button>
-          </div>
-        </div>
-
-        <div style="margin-top:12px" id="mainContent"></div>
-      </div>
+      <div class="g_id_signin" data-type="standard"></div>
     </div>
+  </div>
 
-    <div id="toast" class="toast"></div>
+  <!-- App Main -->
+  <div id="app" class="hidden">
+    <header class="app-header">
+      <div class="header-left">
+        <img src="https://upload.wikimedia.org/wikipedia/en/3/3e/NTPC_Logo.svg" class="header-logo" />
+        <h1>NTPC Project Dashboard</h1>
+      </div>
+      <div class="header-right">
+        <span id="user-email"></span>
+        <button id="logout-btn">Logout</button>
+      </div>
+    </header>
 
-    <script>
-      // ---- CONFIG: replace with your OAuth Client ID ----
-      const CLIENT_ID = '270878077169-hlbc44p6usoouafadjh5ftb60ugvb9sm.apps.googleusercontent.com.apps.googleusercontent.com';
-      // --------------------------------------------------
+    <nav class="sidebar slide-in-left">
+      <ul id="nav-links"></ul>
+    </nav>
 
-      function showToast(msg, ms=3000){ var t=document.getElementById('toast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none', ms); }
-
-      // First try server-side Session approach:
-      document.addEventListener('DOMContentLoaded', function(){
-        google.script.run.withSuccessHandler(handleServerSession).isUserWhitelisted();
-      });
-
-      function handleServerSession(res){
-        // res is result of isUserWhitelisted() which uses Session.getActiveUser()
-        // If server returned an object with email, proceed; if not, fall back to client Google Sign-In.
-        if (res && res.email){
-          // server saw a user (may be allowed or not)
-          if (res.allowed){
-            onAuth(res);
-            return;
-          } else {
-            // server saw an email but not allowed
-            document.getElementById('access-error').style.display='block';
-            document.getElementById('user-info').textContent = (res.email||'Unknown user');
-            return;
-          }
-        }
-        // No email from server - use Google Identity client sign-in
-        initClientSignIn();
-      }
-
-      // Initialize Google Identity sign-in button
-      function initClientSignIn(){
-        document.getElementById('signin-area').style.display = 'block';
-        document.getElementById('user-info').textContent = 'Please sign in';
-        if (!CLIENT_ID || CLIENT_ID.indexOf('REPLACE_WITH')===0){
-          document.getElementById('gSignInDiv').innerHTML = '<div style="color:#a00">Set CLIENT_ID in the HTML to a valid OAuth client ID (Google Cloud).</div>';
-          return;
-        }
-        window.google.accounts.id.initialize({
-          client_id: CLIENT_ID,
-          callback: handleCredentialResponse,
-          ux_mode: 'popup' // popup avoids redirect
-        });
-        // render the button
-        window.google.accounts.id.renderButton(
-          document.getElementById('gSignInDiv'),
-          { theme: 'outline', size: 'large', width: 250 }
-        );
-        // optionally prompt: window.google.accounts.id.prompt();
-      }
-
-      // Called by Google Identity when user signs in
-      function handleCredentialResponse(response){
-        // response.credential is the ID token
-        if (!response || !response.credential) { showToast('Sign-in failed'); return; }
-        const idToken = response.credential;
-        // send idToken to server for verification + whitelist check
-        google.script.run.withSuccessHandler(function(res){
-          if (res && res.email && res.allowed){
-            onAuth(res);
-          } else {
-            // not whitelisted (or token invalid)
-            var msg = 'Not allowed to access';
-            if (res && res.reason) msg += ': ' + res.reason;
-            showToast(msg, 5000);
-            document.getElementById('access-error').style.display = 'block';
-            document.getElementById('user-info').textContent = (res && res.email) ? res.email : 'Signed-in (not allowed)';
-            // optionally sign user out from the prompt layer
-          }
-        }).verifyTokenAndWhitelist(idToken);
-      }
-
-      // Called when we have authenticated & allowlisted user info
-      function onAuth(obj){
-        var email = obj.email || '';
-        var role = obj.role || '';
-        var name = obj.name || '';
-        document.getElementById('user-info').textContent = email;
-        document.getElementById('welcome').textContent = (name? name + ' — ' + email : email);
-        document.getElementById('roleText').textContent = 'Role: ' + role;
-        document.getElementById('signin-area').style.display = 'none';
-        document.getElementById('access-error').style.display = 'none';
-        document.getElementById('app').style.display = 'block';
-        // now you may call existing dashboard loader e.g. loadDashboard() or similar
-        if (typeof loadDashboard === 'function') try{ loadDashboard(); } catch(e){}
-        if (typeof loadRecent === 'function') try{ loadRecent(); } catch(e){}
-      }
-
-      // If you want sign-out (client side only)
-      function clientSignOut(){
-        try { google.accounts.id.disableAutoSelect(); } catch(e){}
-        showToast('Signed out (client). Reload page to sign in again.');
-        location.reload();
-      }
-
-      // Keep rest of your UI functions below (showPackageModal, TPL UI, CCD UI etc.)
-      // If you copied the previous Index.html, ensure functions referenced (loadDashboard, loadRecent, showPackageModal ...) exist.
-    </script>
-  </body>
+    <main class="content slide-fade" id="content-area">
+      <h2>Welcome to the NTPC Monitoring System</h2>
+      <p>Select a section from the left panel to get started.</p>
+    </main>
+  </div>
+</body>
 </html>

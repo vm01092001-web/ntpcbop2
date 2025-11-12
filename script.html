@@ -1,0 +1,54 @@
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbzkxjfymDcWMXTOoIJpDnwqwKZn6TXeET27AJmiJsW6psLo0D_56hAW9dhepH9gjIYsHw/exec";
+let userData = null;
+
+function handleCredentialResponse(response) {
+  const data = JSON.parse(atob(response.credential.split('.')[1]));
+  verifyUser(data.email);
+}
+
+async function verifyUser(email) {
+  const res = await postAPI("checkUser", { email });
+  if (res.ok) {
+    userData = res;
+    document.getElementById("login-screen").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("user-email").innerText = email;
+    loadUI(res.role);
+  } else alert("Access denied");
+}
+
+function postAPI(action, data={}) {
+  return fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({ action, ...data }),
+    headers: {"Content-Type":"application/json"}
+  }).then(r => r.json());
+}
+
+function loadUI(role) {
+  const nav = document.getElementById("nav-links");
+  nav.innerHTML = "";
+  if (role === "TPL") {
+    addItem("Weekly Planner", () => showPage("Weekly Planner"));
+    addItem("Self Assessment", () => showPage("Self Assessment"));
+  } else if (role === "CCD") {
+    addItem("Review", () => showPage("Review"));
+    addItem("Ratings", () => showPage("Ratings"));
+  }
+}
+
+function addItem(name, fn) {
+  const li = document.createElement("li");
+  li.textContent = name;
+  li.onclick = fn;
+  document.getElementById("nav-links").appendChild(li);
+}
+
+function showPage(title) {
+  const main = document.getElementById("content-area");
+  main.innerHTML = `<h2>${title}</h2><p>Content coming soon...</p>`;
+}
+
+document.getElementById("logout-btn").addEventListener("click", ()=>location.reload());
+</script>

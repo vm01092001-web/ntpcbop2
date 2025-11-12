@@ -1,0 +1,32 @@
+<style>
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #e6ecf2;
+  color: #222;
+  margin: 0;
+}
+.hidden { display: none; }
+.app-header {
+  background: linear-gradient(90deg, #004c80, #007acc);
+  color: white;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.sidebar {
+  position: fixed; left: 0; top: 60px;
+  width: 220px; height: calc(100vh - 60px);
+  background: #003366; color: #fff;
+}
+.sidebar li:hover { background: #005fa3; cursor: pointer; }
+.content { margin-left: 240px; padding: 30px; }
+button {
+  background: #0078d4; color: white;
+  border: none; padding: 8px 16px; border-radius: 6px;
+  cursor: pointer;
+}
+button:hover { background: #005fa3; }
+.fade-in { animation: fadeIn 0.8s ease; }
+@keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
+</style>
